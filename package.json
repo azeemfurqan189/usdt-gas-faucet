@@ -1,0 +1,27 @@
+{
+  "name": "usdt-gas-faucet",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "ethers": "^6.13.5",
+    "@vercel/kv": "^3.0.0",
+    "next": "15.2.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.8.0",
+    "tailwindcss": "^4.0.0",
+    "postcss": "^8.4.47",
+    "autoprefixer": "^10.4.20"
+  }
+}
