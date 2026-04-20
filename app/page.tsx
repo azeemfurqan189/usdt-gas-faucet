@@ -3,6 +3,12 @@
 import { useState } from 'react';
 import { ethers } from 'ethers';
 
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
+
 export default function Home() {
   const [address, setAddress] = useState('');
   const [status, setStatus] = useState('');
@@ -10,24 +16,28 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
 
   const connectWallet = async () => {
-    if (!window.ethereum) {
+    if (typeof window === 'undefined' || !window.ethereum) {
       alert('Trust Wallet ya MetaMask install karo!');
       return;
     }
+
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
       await provider.send('eth_requestAccounts', []);
       const signer = await provider.getSigner();
       const userAddress = await signer.getAddress();
+
       setAddress(userAddress);
       setStatus('Wallet connected!');
     } catch (err) {
       console.error(err);
+      setStatus('❌ Wallet connection failed');
     }
   };
 
   const claimGas = async () => {
     if (!address) return alert('Pehle wallet connect karo');
+
     setLoading(true);
     setStatus('');
 
@@ -40,10 +50,10 @@ export default function Home() {
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error || 'Kuch galat hua');
+      if (!res.ok) throw new Error(data.error || 'Request failed');
 
       setTxHash(data.txHash);
-      setStatus('✅ Gas fee successfully send ho gaya!');
+      setStatus('✅ Gas fee successfully sent!');
     } catch (err: any) {
       setStatus('❌ ' + err.message);
     } finally {
@@ -52,17 +62,19 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+    <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-gray-800 p-8 rounded-2xl shadow-2xl text-center">
         <h1 className="text-3xl font-bold mb-2">USDT Holder Gas Faucet</h1>
-        <p className="text-gray-400 mb-8">1 USDT+ wale ko 0.005 BNB gas milega (sirf 1 baar)</p>
+        <p className="text-gray-400 mb-8">
+          1 USDT+ wale ko 0.005 BNB gas milega (sirf 1 baar)
+        </p>
 
         {!address ? (
           <button
             onClick={connectWallet}
             className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-4 px-6 rounded-xl text-lg"
           >
-            Connect Trust Wallet
+            Connect Wallet
           </button>
         ) : (
           <>
@@ -76,19 +88,20 @@ export default function Home() {
               disabled={loading}
               className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-600 font-bold py-4 px-6 rounded-xl text-lg"
             >
-              {loading ? 'Checking + Sending...' : 'Claim BNB Gas Fee'}
+              {loading ? 'Processing...' : 'Claim BNB Gas Fee'}
             </button>
           </>
         )}
 
         {status && <p className="mt-6 text-lg">{status}</p>}
+
         {txHash && (
           <a
             href={`https://bscscan.com/tx/${txHash}`}
             target="_blank"
             className="text-blue-400 underline block mt-4"
           >
-            View Transaction on BscScan →
+            View Transaction →
           </a>
         )}
       </div>
