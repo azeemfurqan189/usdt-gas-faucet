@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
     await tx.wait();
 
-    await redis.set(`claimed:${lowerAddress}`, 'true');
+    await redis.set(`claimed:${lowerAddress}`, 'true', { ex: 0 }); // permanent
 
     return NextResponse.json({
       success: true,

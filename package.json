@@ -10,12 +10,12 @@
   },
   "dependencies": {
   "ethers": "^6.13.5",
-  "@upstash/redis": "^1.34.0",     // ← yeh change kiya (@vercel/kv ki jagah)
-  "next": "^15.2.6",               // ← patched version (security fix)
+  "@upstash/redis": "^1.34.0",
+  "next": "^15.2.6",        // ← Yeh security fix wala version
   "react": "^19.0.0",
   "react-dom": "^19.0.0"
   
-   },
+},
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
