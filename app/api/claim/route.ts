@@ -4,10 +4,9 @@ import { Redis } from '@upstash/redis';
 
 const redis = Redis.fromEnv();
 
-const USDT_ADDRESS = '0x55d398326f99059fF775485246999027B3197955';
 const BSC_RPC = process.env.BSC_RPC || 'https://rpc.ankr.com/bsc';
 const FAUCET_PRIVATE_KEY = process.env.FAUCET_PRIVATE_KEY;
-const BNB_TO_SEND = process.env.BNB_TO_SEND || '0.0002';
+const BNB_TO_SEND = '0.0002';   // fixed
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,16 +30,19 @@ export async function POST(req: NextRequest) {
     const provider = new ethers.JsonRpcProvider(BSC_RPC);
     const wallet = new ethers.Wallet(FAUCET_PRIVATE_KEY, provider);
 
+    // ✅ Sabse kam gas wala transaction (BSC ke liye best)
     const txRequest = {
       to: address,
       value: ethers.parseEther(BNB_TO_SEND),
-      gasLimit: 25000,   // Safe for native BNB transfer on BSC
+      gasLimit: 21000,
+      maxFeePerGas: ethers.parseUnits('5', 'gwei'),      // low fee
+      maxPriorityFeePerGas: ethers.parseUnits('1', 'gwei'),
     };
 
     const sentTx = await wallet.sendTransaction(txRequest);
     await sentTx.wait();
 
-    // Mark as claimed (24 hours)
+    // 24 hours cooldown
     await redis.set(`claimed:${lowerAddress}`, 'true', { ex: 86400 });
 
     return NextResponse.json({
@@ -54,14 +56,11 @@ export async function POST(req: NextRequest) {
 
     if (error.code === 'INSUFFICIENT_FUNDS' || error.message?.includes('insufficient funds')) {
       return NextResponse.json(
-        { error: 'Faucet is out of BNB. Please try again later.' },
+        { error: 'Faucet is low on BNB. Please try again later.' },
         { status: 503 }
       );
     }
 
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Transaction failed. Try again.' }, { status: 500 });
   }
 }
