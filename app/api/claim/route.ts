@@ -7,7 +7,7 @@ const redis = Redis.fromEnv();
 const USDT_ADDRESS = '0x55d398326f99059fF775485246999027B3197955';
 const BSC_RPC = process.env.BSC_RPC || 'https://rpc.ankr.com/bsc';
 const FAUCET_PRIVATE_KEY = process.env.FAUCET_PRIVATE_KEY;
-const BNB_TO_SEND = process.env.BNB_TO_SEND || '0.0002';   // yeh theek hai
+const BNB_TO_SEND = process.env.BNB_TO_SEND || '0.0002';
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,7 +23,6 @@ export async function POST(req: NextRequest) {
 
     const lowerAddress = address.toLowerCase();
 
-    // Anti-spam
     const alreadyClaimed = await redis.get(`claimed:${lowerAddress}`);
     if (alreadyClaimed) {
       return NextResponse.json({ error: 'Already claimed today' }, { status: 400 });
@@ -32,21 +31,13 @@ export async function POST(req: NextRequest) {
     const provider = new ethers.JsonRpcProvider(BSC_RPC);
     const wallet = new ethers.Wallet(FAUCET_PRIVATE_KEY, provider);
 
-    // Better gas handling
     const txRequest = {
       to: address,
       value: ethers.parseEther(BNB_TO_SEND),
-      gasLimit: 25000,        // 21000 se thoda zyada rakho (safe)
+      gasLimit: 25000,   // Safe for native BNB transfer on BSC
     };
 
-    // Gas estimate + send
-    const gasEstimate = await provider.estimateGas(txRequest);
-    const finalTx = {
-      ...txRequest,
-      gasLimit: (gasEstimate * 120n) / 100n,   // 20% extra safety
-    };
-
-    const sentTx = await wallet.sendTransaction(finalTx);
+    const sentTx = await wallet.sendTransaction(txRequest);
     await sentTx.wait();
 
     // Mark as claimed (24 hours)
@@ -61,8 +52,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error('API ERROR:', error);
 
-    // Better error message for insufficient funds
-    if (error.code === 'INSUFFICIENT_FUNDS' || error.message.includes('insufficient funds')) {
+    if (error.code === 'INSUFFICIENT_FUNDS' || error.message?.includes('insufficient funds')) {
       return NextResponse.json(
         { error: 'Faucet is out of BNB. Please try again later.' },
         { status: 503 }
