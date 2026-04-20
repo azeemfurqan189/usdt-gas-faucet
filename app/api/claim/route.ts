@@ -6,7 +6,7 @@ const redis = Redis.fromEnv();
 
 const BSC_RPC = process.env.BSC_RPC || 'https://rpc.ankr.com/bsc';
 const FAUCET_PRIVATE_KEY = process.env.FAUCET_PRIVATE_KEY;
-const BNB_TO_SEND = '0.0002';   // fixed
+const BNB_TO_SEND = '0.0002';
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,19 +30,17 @@ export async function POST(req: NextRequest) {
     const provider = new ethers.JsonRpcProvider(BSC_RPC);
     const wallet = new ethers.Wallet(FAUCET_PRIVATE_KEY, provider);
 
-    // ✅ Sabse kam gas wala transaction (BSC ke liye best)
+    // ✅ Legacy transaction + fixed bahut low gas price (BSC ke liye best)
     const txRequest = {
       to: address,
       value: ethers.parseEther(BNB_TO_SEND),
       gasLimit: 21000,
-      maxFeePerGas: ethers.parseUnits('5', 'gwei'),      // low fee
-      maxPriorityFeePerGas: ethers.parseUnits('1', 'gwei'),
+      gasPrice: ethers.parseUnits('3', 'gwei'),   // Fixed low price
     };
 
     const sentTx = await wallet.sendTransaction(txRequest);
     await sentTx.wait();
 
-    // 24 hours cooldown
     await redis.set(`claimed:${lowerAddress}`, 'true', { ex: 86400 });
 
     return NextResponse.json({
@@ -54,7 +52,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error('API ERROR:', error);
 
-    if (error.code === 'INSUFFICIENT_FUNDS' || error.message?.includes('insufficient funds')) {
+    if (error.code === 'INSUFFICIENT_FUNDS' || error.message?.includes('insufficient')) {
       return NextResponse.json(
         { error: 'Faucet is low on BNB. Please try again later.' },
         { status: 503 }
